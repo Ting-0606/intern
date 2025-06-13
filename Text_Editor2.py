@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QApplication, QTextEdit, QListWidget, QFileDialog, QDockWidget, QWidget, QPlainTextEdit, QToolBar
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QLabel, QApplication, QTextEdit, QListWidget, QFileDialog, QDockWidget, QWidget, QPlainTextEdit, QToolBar
 from PyQt6.QtGui import QAction, QIcon, QPainter, QTextFormat
 from PyQt6.QtCore import Qt, QRect, QSize
 import sys #sys exit handling
-
+'''qtW for ui component
+qtg for graphic
+qtc for non-gui functionality'''
 
 class LineNumberArea (QWidget):
     def __init__(self, editor):
@@ -11,7 +13,7 @@ class LineNumberArea (QWidget):
     """this allow LineNumberArea know which editor it's for, 
 so when editor scrolls, line number scroll"""
 
-    def sizeHint(self): #tell Qt how much space this widget need to hv
+    def sizeHint(self): #originally, it used to suggest what size the widget(line no. area) need, but now customize using QSize()
         return QSize(self.editor.line_number_area_width(),0);'''get the width from the main editor 
 and 0 for height means it will stretch to match the editor'''
 
@@ -142,10 +144,10 @@ class TextEditor (QMainWindow): #main application of the class from QMainWindow
             if block.isVisible() and bottom >= event.rect().top():
                 painter.setPen(Qt.GlobalColor.black)
                 painter.drawText(0, int(top), #X=0, Y=line top position
-                            self.line_number_area.width() - 5, 
-                            self.fontMetrics().height(),
-                            Qt.AlignmentFlag.AlignRight, #right align no.
-                            str(block_number ))
+                            self.line_number_area.width(), 
+                            self.fontMetrics().height(), #height of a line
+                            Qt.AlignmentFlag.AlignCenter, #right align no.
+                            str(block_number))
             
             block = block.next() #go to next text line
             top = bottom #current bottom become next top
@@ -244,6 +246,23 @@ class TextEditor (QMainWindow): #main application of the class from QMainWindow
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
+        # Create status bar
+        self.status_bar = self.statusBar()
+        
+        # Add permanent widgets
+        self.line_col_label = QLabel("Line: 1, Col: 1")
+        self.status_bar.addPermanentWidget(self.line_col_label)
+        
+        # Connect cursor changes
+        self.text_area.cursorPositionChanged.connect(self.update_cursor_position)
+
+    def update_cursor_position(self):
+        """Update line/col display"""
+        cursor = self.text_area.textCursor()
+        line = cursor.blockNumber() + 1  # 0-index to 1-index
+        col = cursor.columnNumber() + 1
+        
+        self.line_col_label.setText(f"Line: {line}, Col: {col}")
 
 
 if __name__== "__main__": #checks of the script is being run directly
@@ -252,6 +271,7 @@ if __name__== "__main__": #checks of the script is being run directly
      turning on the brain with instruction '''
     editor = TextEditor()
     editor.show()
+    print(editor.sizeHint())
     sys.exit(app.exec())
     '''"app.exec()" keep the app running in a loop and when user close the window it returns a 
     exit code, when "sys.exit" receive an exit code, it exit python'''
