@@ -1,2 +1,4 @@
 .gitignore
+**/.vscode
+**/.DS_Store
 ting/
