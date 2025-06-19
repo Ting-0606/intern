@@ -31,18 +31,17 @@ class UART:
         GPIO.setup(PIN_LED, GPIO.OUT)
         GPIO.output(PIN_LED, GPIO.LOW)
 
-    def init(self, baudrate=None, port='/dev/serial0'):
+    def init(self, baudrate=115200, port='/dev/serial0'):
         """Initialize UART communication"""
         try:
             self._serial = serial.Serial(
                 port=port,
                 baudrate=baudrate if baudrate else BAUDRATE,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
+                parity=serial.PARITY_NONE, # no parity bit
+                stopbits=serial.STOPBITS_ONE, # one stop bit
                 bytesize=serial.EIGHTBITS,
                 timeout=0.1  # Short timeout for non-blocking reads
             )
-            print(f"UART initialized at {baudrate if baudrate else BAUDRATE} baud")
             time.sleep(1)  # Allow time for connection
             
         except Exception as e:
@@ -51,7 +50,7 @@ class UART:
 
     def check_connection(self, pin_connect=None):
         """Check Bluetooth connection status"""
-        connect_pin = pin_connect if pin_connect else BLE_CONNECT
+        connect_pin = pin_connect 
         currently_connected = GPIO.input(connect_pin)
         
         if currently_connected != self._is_connected:
@@ -60,9 +59,7 @@ class UART:
                 self._is_streaming = False
                 self._motor.set_state(self._motor.State.STOP.value)
                 GPIO.output(PIN_LED, GPIO.LOW)
-                print("Bluetooth disconnected")
-            else:
-                print("Bluetooth connected")
+            
                 
             self._is_connected = currently_connected
 
@@ -71,6 +68,7 @@ class UART:
         if isinstance(val, int):
             self._chksum_tx += val
             self._serial.write(bytes([val]))
+
         elif isinstance(val, float):
             # Pack float into 4 bytes
             packed = struct.pack('f', val)
@@ -108,15 +106,15 @@ class UART:
         if self._serial and self._serial.in_waiting:
             try:
                 # Shift buffer and read new byte
-                self.buffer_shift(self._buffer_hd)
+                self.buffer_shift(self._buffer_hd) 
                 self._buffer_hd[0] = self._serial.read(1)[0]
 
                 # Check for valid header
                 if (self._buffer_hd[3] == BLE_HEADER and 
                     self._buffer_hd[2] == BLE_HEADER):
                     
-                    self._cmd = self._buffer_hd[1]
-                    self._len = self._buffer_hd[0]
+                    self._cmd = self._buffer_hd[1] #command byte
+                    self._len = self._buffer_hd[0] #data length
                     self._chksum_rx = self._cmd + self._len
                     
                     # Read data payload
@@ -139,8 +137,8 @@ class UART:
         cmd_char = chr(self._cmd)
         
         if cmd_char == 'R':  # System reset
-            print("Reset command received")
-            # Implement system reset logic
+            self.cleanup()  # Clean up resources first
+            subprocess.run(['sudo', 'reboot'])
             
         elif cmd_char == 'D':  # Debug data
             if not self._is_streaming:
@@ -154,11 +152,10 @@ class UART:
         elif cmd_char == 'S':  # Start streaming
             self._is_streaming = True
             self._motor.set_ready(False)
-            print("Streaming started")
+
         elif cmd_char == 's':  # Stop streaming
             self._is_streaming = False
             self._motor.set_ready(True)
-            print("Streaming stopped")
             
         elif cmd_char in ['Z', 'z']:  # Tare commands
             self._handle_tare_commands(cmd_char)
@@ -196,37 +193,31 @@ class UART:
         """Process tare commands"""
         if cmd == 'Z':
             self._weight_fill.set_zero()
-            print("Fill cell tared")
         else:
             self._weight_drain.set_zero()
-            print("Drain cell tared")
         self._memory.save()
 
     def _handle_calibration_commands(self, cmd):
         """Process calibration commands"""
         if cmd == 'C':
             self._weight_fill.set_cal()
-            print("Fill cell calibrated")
         else:
             self._weight_drain.set_cal()
-            print("Drain cell calibrated")
         self._memory.save()
 
     def _handle_motor_commands(self, cmd):
         """Process motor control commands"""
         if cmd == 'M':
             self._motor.set_state(self._motor.State.UP.value)
-            print("Motor UP")
         elif cmd == 'm':
             self._motor.set_state(self._motor.State.DOWN.value)
-            print("Motor DOWN")
         else:
             self._motor.set_state(self._motor.State.STOP.value)
-            print("Motor STOP")
+           
 
     def _run_test_sequence(self):
         """Execute system test sequence"""
-        print("Running test sequence...")
+        
         GPIO.output(PIN_BUZZ, GPIO.HIGH)
         self._motor.set_state(self._motor.State.UP.value)
         time.sleep(1)
@@ -234,7 +225,7 @@ class UART:
         time.sleep(1)
         self._motor.set_state(self._motor.State.STOP.value)
         GPIO.output(PIN_BUZZ, GPIO.LOW)
-        print("Test complete")
+       
 
     def buffer_shift(self, buffer):
         """Shift buffer contents by one position"""
@@ -246,4 +237,4 @@ class UART:
         if self._serial and self._serial.is_open:
             self._serial.close()
         GPIO.output(PIN_LED, GPIO.LOW)
-        print("UART communication stopped")
+       

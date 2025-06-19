@@ -20,7 +20,7 @@ class A4950:
         self._is_pressed_sw_1 = 0
         self.state = self.State.STOP
 
-    def init(self, pin_M0 = , pin_M1 = , pin_M_LED = , pin_sw_0 = , pin_sw_1 = ):
+    def init(self, pin_M0 =5 , pin_M1 =6 , pin_M_LED =25 , pin_sw_0 =23 , pin_sw_1 =24 ):
         self._pin_a4950_in0 = pin_M0
         self._pin_a4950_in1 = pin_M1
         self._pin_a4950_led = pin_M_LED

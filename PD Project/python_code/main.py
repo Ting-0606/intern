@@ -2,11 +2,10 @@ import time
 import RPi.GPIO as GPIO
 from setup import *
 from hx711 import HX711
-from a4950 import A4950
-from system_monitor import System
+from A4950 import A4950
+from System import System
 from memory import Memory
-from uart_comms import UART
-from sound import Sound
+from Sound import Sound
 
 def main():
     # Initialize GPIO
